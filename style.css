@@ -16,7 +16,7 @@ body {
 #game {
   text-align: center;
   padding: 24px;
-  width: min(94vw, 960px, calc((100vh - 400px) * 16 / 9 + 48px));
+  width: min(94vw, 960px, calc((100vh - 440px) * 16 / 9 + 48px));
   min-width: min(94vw, 420px);
 }
 
