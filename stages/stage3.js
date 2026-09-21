@@ -21,6 +21,7 @@ export default {
     noteLeadSec: 1.0,
     minBeatGapSec: 0.25,
     energyThreshold: 1.5,
+    gridSubdivision: 2,
   },
   specialNotes: {
     mouthNoteEvery: 4,

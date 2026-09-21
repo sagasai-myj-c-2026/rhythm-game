@@ -1,4 +1,4 @@
-import { detectBeats } from "./beat-detector.js";
+import { detectBeats, snapBeatsToGrid } from "./beat-detector.js";
 import { inputBus } from "./input/input-bus.js";
 import { assignNoteTypes } from "./note-types.js";
 
@@ -14,6 +14,7 @@ export function initGame(stageConfig, domRefs) {
     noteLeadSec: NOTE_LEAD_SEC,
     minBeatGapSec,
     energyThreshold,
+    gridSubdivision = 0,
   } = stageConfig.difficulty;
 
   const {
@@ -341,6 +342,12 @@ export function initGame(stageConfig, domRefs) {
       const buffer = await loadAudio();
       if (!beatOffsets.length) {
         beatOffsets = detectBeats(buffer, { minBeatGapSec, energyThreshold });
+        if (gridSubdivision > 0) {
+          beatOffsets = snapBeatsToGrid(buffer, beatOffsets, {
+            subdivision: gridSubdivision,
+            minBeatGapSec,
+          });
+        }
       }
 
       score = 0;

@@ -72,6 +72,7 @@ export default {
     noteLeadSec: 1.1,      // ノーツが見え始めてから到達までの秒数
     minBeatGapSec: 0.3,    // 検出ビートの最小間隔(早すぎる曲への微調整用)
     energyThreshold: 1.4,  // 移動平均の何倍でビートとするか(早すぎ/遅すぎを調整)
+    // gridSubdivision: 2, // 任意。テンポが一定の曲で、検出ノーツを曲自身のビート格子に寄せてリズムを整える(2=8分音符単位)。省略時は補正なし
   },
   specialNotes: {
     mouthNoteEvery: 8, // 検出されたビートのうち N拍ごとに1回を口ノーツに変換(0なら無効)
