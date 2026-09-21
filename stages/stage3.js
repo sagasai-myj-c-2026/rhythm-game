@@ -7,7 +7,7 @@ export default {
   background: { type: "image", value: "assets/bg/back_miku.png" },
   character: {
     type: "sprite",
-    offsetX: 29.1,
+    offsetX: 0,
     frames: {
       normal: "assets/chars/miku_normal.png",
       normal2: "assets/chars/miku_normal2.png",
