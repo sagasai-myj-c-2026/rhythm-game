@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhythm Game MVP</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game">
+    <h1>Space Rhythm</h1>
+    <p class="hint">ビートに合わせて Space キーを押そう</p>
+
+    <div id="stage">
+      <div id="character">🐰</div>
+      <div id="judgment"></div>
+    </div>
+
+    <div id="hud">
+      <div>Score: <span id="score">0</span></div>
+      <div>Combo: <span id="combo">0</span></div>
+    </div>
+
+    <button id="startBtn">スタート</button>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
