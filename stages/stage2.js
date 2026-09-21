@@ -4,8 +4,17 @@ export default {
   id: "stage2",
   title: "Burning Hearts",
   audioUrl: "assets/songs/stage2.mp3",
-  background: { type: "color", value: "#2e1a3e" },
-  character: { type: "emoji", value: "🐱" },
+  background: { type: "image", value: "assets/bg/back_cappa.png" },
+  character: {
+    type: "sprite",
+    offsetX: -64.5,
+    frames: {
+      normal: "assets/chars/cappa_normal.png",
+      normal2: "assets/chars/cappa_normal2.png",
+      perfect: "assets/chars/cappa_perfect.png",
+      miss: "assets/chars/cappa_miss.png",
+    },
+  },
   difficulty: {
     perfectWindow: 0.08,
     goodWindow: 0.18,

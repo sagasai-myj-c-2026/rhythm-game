@@ -4,8 +4,17 @@ export default {
   id: "stage3",
   title: "Stage 3 (仮)",
   audioUrl: "assets/songs/stage3.mp3",
-  background: { type: "color", value: "#1a3e2e" },
-  character: { type: "emoji", value: "🐻" },
+  background: { type: "image", value: "assets/bg/back_miku.png" },
+  character: {
+    type: "sprite",
+    offsetX: -30,
+    frames: {
+      normal: "assets/chars/miku_normal.png",
+      normal2: "assets/chars/miku_normal2.png",
+      perfect: "assets/chars/miku_perfect.png",
+      miss: "assets/chars/miku_miss.png",
+    },
+  },
   difficulty: {
     perfectWindow: 0.07,
     goodWindow: 0.16,

@@ -3,6 +3,8 @@ import { inputBus } from "./input/input-bus.js";
 import { assignNoteTypes } from "./note-types.js";
 
 const LEAD_IN_SEC = 0.5;
+const IDLE_FRAME_SEC = 0.3;
+const HIT_FRAME_SEC = 0.3;
 
 export function initGame(stageConfig, domRefs) {
   const AUDIO_URL = stageConfig.audioUrl;
@@ -45,7 +47,7 @@ export function initGame(stageConfig, domRefs) {
   let score = 0;
   let combo = 0;
   let rafId = null;
-  let lastBeatIndex = -1;
+  let hitFrameUntil = 0;
   let spawnPointer = 0;
   let noteEls = new Map();
   let hitLineX = 0;
@@ -67,14 +69,17 @@ export function initGame(stageConfig, domRefs) {
       stageEl.style.background = background.value;
     }
 
-    if (character.type === "sprite") {
-      const img = document.createElement("img");
-      img.src = character.value;
-      img.alt = "";
-      characterEl.replaceChildren(img);
-    } else {
-      characterEl.textContent = character.value;
-    }
+    characterEl.style.setProperty("--char-offset", `${character.offsetX ?? 0}%`);
+    characterEl.replaceChildren(
+      ...Object.entries(character.frames).map(([name, url]) => {
+        const img = document.createElement("img");
+        img.className = `frame-${name}`;
+        img.src = url;
+        img.alt = "";
+        return img;
+      })
+    );
+    setCharacterFrame("normal");
   }
 
   function showLoadError() {
@@ -91,16 +96,20 @@ export function initGame(stageConfig, domRefs) {
     judgmentEl.classList.add("show");
   }
 
-  function bounceCharacter() {
-    characterEl.classList.add("beat");
-    setTimeout(() => characterEl.classList.remove("beat"), 90);
+  function setCharacterFrame(name) {
+    if (characterEl.dataset.frame !== name) characterEl.dataset.frame = name;
   }
 
-  function flashCharacter(cls) {
-    characterEl.classList.remove("hit-perfect", "hit-good", "hit-miss");
-    void characterEl.offsetWidth;
-    characterEl.classList.add(cls);
-    setTimeout(() => characterEl.classList.remove(cls), 200);
+  function showHitFrame(name, now) {
+    setCharacterFrame(name);
+    hitFrameUntil = now + HIT_FRAME_SEC;
+  }
+
+  // Swaps normal/normal2 on the audio clock, so it freezes while paused.
+  function updateCharacterFrame(now) {
+    if (now < hitFrameUntil) return;
+    const phase = Math.floor(now / IDLE_FRAME_SEC) % 2;
+    setCharacterFrame(phase === 0 ? "normal" : "normal2");
   }
 
   function measureLane() {
@@ -176,19 +185,19 @@ export function initGame(stageConfig, domRefs) {
       score += 100;
       combo += 1;
       showJudgment("Perfect", "perfect");
-      flashCharacter("hit-perfect");
+      showHitFrame("perfect", now);
       removeNote(index, "perfect");
     } else if (diff <= GOOD_WINDOW) {
       hitBeats.add(index);
       score += 50;
       combo += 1;
       showJudgment("Good", "good");
-      flashCharacter("hit-good");
+      showHitFrame("perfect", now);
       removeNote(index, "good");
     } else {
       combo = 0;
       showJudgment("Miss", "miss");
-      flashCharacter("hit-miss");
+      showHitFrame("miss", now);
     }
 
     scoreEl.textContent = score;
@@ -211,18 +220,7 @@ export function initGame(stageConfig, domRefs) {
     checkMissedBeats(now);
     updateNotes(now);
 
-    let currentBeatIndex = lastBeatIndex;
-    for (let i = lastBeatIndex + 1; i < beatTimes.length; i++) {
-      if (beatTimes[i] <= now) {
-        currentBeatIndex = i;
-      } else {
-        break;
-      }
-    }
-    if (currentBeatIndex !== lastBeatIndex) {
-      lastBeatIndex = currentBeatIndex;
-      bounceCharacter();
-    }
+    updateCharacterFrame(now);
 
     if (state === "playing") {
       rafId = requestAnimationFrame(tick);
@@ -255,6 +253,7 @@ export function initGame(stageConfig, domRefs) {
   function endGame() {
     state = "ended";
     cancelAnimationFrame(rafId);
+    setCharacterFrame("normal");
     clearAllNotes();
     setControlsForState();
     overlayTitleEl.textContent = "終了！";
@@ -326,7 +325,8 @@ export function initGame(stageConfig, domRefs) {
       score = 0;
       combo = 0;
       hitBeats = new Set();
-      lastBeatIndex = -1;
+      hitFrameUntil = 0;
+      setCharacterFrame("normal");
       spawnPointer = 0;
       clearAllNotes();
       scoreEl.textContent = "0";
@@ -365,6 +365,7 @@ export function initGame(stageConfig, domRefs) {
   }
 
   applyStageLook();
+  window.addEventListener("resize", measureLane);
 
   startBtn.addEventListener("click", playGame);
   restartBtn.addEventListener("click", playGame);

@@ -54,9 +54,18 @@ BPMという概念は使わず、曲ごとに波形の山(ドラムやキック�
 export default {
   id: "stage1",
   title: "Shining Star",
-  audioUrl: "songs/stage1.mp3",
-  background: { type: "color", value: "#16213e" }, // 後で { type: "image", value: "bg/stage1.png" } に差し替え可能
-  character: { type: "emoji", value: "🐰" },        // 後で { type: "sprite", value: "chars/rabbit.png" } に差し替え可能
+  audioUrl: "assets/songs/stage1.mp3",
+  background: { type: "image", value: "assets/bg/back_dra.png" }, // 単色にする場合は { type: "color", value: "#16213e" }
+  character: {
+    type: "sprite",
+    offsetX: -62.1, // キャラ画像レイヤーを横にずらす量(ステージ幅の%)。キャラをヒットラインの位置に合わせる
+    frames: {
+      normal: "assets/chars/dra_normal.png",   // 通常(normalとnormal2を交互に表示して動かす)
+      normal2: "assets/chars/dra_normal2.png",
+      perfect: "assets/chars/dra_perfect.png", // Perfect / Good 判定時
+      miss: "assets/chars/dra_miss.png",       // Miss 判定時
+    },
+  },
   difficulty: {
     perfectWindow: 0.08,   // 秒
     goodWindow: 0.18,      // 秒
@@ -229,7 +238,7 @@ export function assignNoteTypes(beatOffsets, stageConfig) {
 | メンバー | 担当内容 | 担当ファイル | 具体的な成果物 |
 | --- | --- | --- | --- |
 | メンバー1(Sora) | コアシステム・口入力 | `core/game-core.js` `core/beat-detector.js` `core/input/mouth-input.js` `core/input/keyboard-input.js` `stages/index.js` | 現在の `game.js` を `game-core.js` に分割し `initGame(stageConfig)` 化する。`mouth-input.js` を実装し、`handleAction(type)` でキーボード/口入力を統一判定できるようにする |
-| メンバー2 | キャラ・背景の作画 | `assets/chars/*` `assets/bg/*` | キャラの状態別画像(通常・Perfect発光用・Good用・Miss用を想定した2〜4枚)とステージごとの背景画像。コードは一切不要。ファイル名の取り決め(例: `rabbit-idle.png` `rabbit-perfect.png`)を事前にメンバー1と相談 |
+| メンバー2 | キャラ・背景の作画 | `assets/chars/*` `assets/bg/*` | キャラの状態別画像(normal・normal2・perfect・missの4枚。すべて1920×1080の透過PNGで、キャラは画面内の好きな位置に描いてよい)とステージごとの背景画像。コードは一切不要。ファイル名は `<キャラ名>_<状態>.png`(例: `cappa_normal.png`)、背景は `back_<キャラ名>.png` |
 | メンバー3(Codex活用) | ステージ設定 | `stages/stage1.js` `stages/stage2.js` `stages/stage3.js` ステージ選択画面(`index.html`の一部) | 確定した `StageConfig` の形(セクション2)に従い、3つのステージ設定ファイルを作成。ステージ選択画面(曲サムネイル一覧→選んでプレイ)のUIも担当 |
 | メンバー4 | HUD/UI調整 | `style.css` の HUD/ボタン部分、`index.html` のDOM追加 | コンボ表示の演出強化(例: コンボ10以上で文字色が変わる)や一時停止画面の見た目改善など、**CSS/HTMLの小改修に閉じたタスク**。`game.js`のロジックには触れない |
 
@@ -248,7 +257,7 @@ export function assignNoteTypes(beatOffsets, stageConfig) {
 ### 事前に合意すべきインターフェース(フリーズするv1契約)
 
 1. **StageConfigの形**(セクション2) — キー名と型を変えない
-2. **アセットの命名規則と配置場所** — `assets/chars/<character>-<state>.png`、`assets/bg/<stage-id>.png`、`assets/songs/<stage-id>.mp3`
+2. **アセットの命名規則と配置場所** — `assets/chars/<キャラ名>_<状態>.png`(状態は normal / normal2 / perfect / miss)、`assets/bg/back_<キャラ名>.png`、`assets/songs/<stage-id>.mp3`
 3. **入力イベントの形**(セクション5) — `action` イベントと `{type: "keyboard"|"mouth"}`
 4. **`initGame(stageConfig, domRefs)` の引数シグネチャ** — 完成を待たず、コア担当が最初にコミットして共有
 

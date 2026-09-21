@@ -2,8 +2,17 @@ export default {
   id: "stage1",
   title: "Shining Star",
   audioUrl: "assets/songs/stage1.mp3",
-  background: { type: "color", value: "#16213e" },
-  character: { type: "emoji", value: "🐰" },
+  background: { type: "image", value: "assets/bg/back_dra.png" },
+  character: {
+    type: "sprite",
+    offsetX: -62.1,
+    frames: {
+      normal: "assets/chars/dra_normal.png",
+      normal2: "assets/chars/dra_normal2.png",
+      perfect: "assets/chars/dra_perfect.png",
+      miss: "assets/chars/dra_miss.png",
+    },
+  },
   difficulty: {
     perfectWindow: 0.08,
     goodWindow: 0.18,
