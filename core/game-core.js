@@ -1,4 +1,6 @@
 import { detectBeats } from "./beat-detector.js";
+import { inputBus } from "./input/input-bus.js";
+import { assignNoteTypes } from "./note-types.js";
 
 const LEAD_IN_SEC = 0.5;
 
@@ -13,6 +15,8 @@ export function initGame(stageConfig, domRefs) {
   } = stageConfig.difficulty;
 
   const {
+    stage: stageEl,
+    stageTitle: stageTitleEl,
     startBtn,
     pauseBtn,
     restartBtn,
@@ -36,6 +40,7 @@ export function initGame(stageConfig, domRefs) {
   let startTime = 0;
   let beatOffsets = [];
   let beatTimes = [];
+  let noteTypes = [];
   let hitBeats = new Set();
   let score = 0;
   let combo = 0;
@@ -48,6 +53,36 @@ export function initGame(stageConfig, domRefs) {
 
   // "idle" -> "loading" -> "playing" <-> "paused" -> "ended"
   let state = "idle";
+
+  function applyStageLook() {
+    stageTitleEl.textContent = stageConfig.title;
+    document.title = `${stageConfig.title} - Space Rhythm`;
+
+    const { background, character } = stageConfig;
+    if (background.type === "image") {
+      stageEl.style.backgroundImage = `url("${background.value}")`;
+      stageEl.style.backgroundSize = "cover";
+      stageEl.style.backgroundPosition = "center";
+    } else {
+      stageEl.style.background = background.value;
+    }
+
+    if (character.type === "sprite") {
+      const img = document.createElement("img");
+      img.src = character.value;
+      img.alt = "";
+      characterEl.replaceChildren(img);
+    } else {
+      characterEl.textContent = character.value;
+    }
+  }
+
+  function showLoadError() {
+    overlayTitleEl.textContent = "読み込みエラー";
+    overlayScoreEl.textContent =
+      "ファイルが設定されていないため音楽の読み込みに失敗しました";
+    overlayEl.hidden = false;
+  }
 
   function showJudgment(text, cls) {
     judgmentEl.textContent = text;
@@ -77,7 +112,7 @@ export function initGame(stageConfig, domRefs) {
 
   function spawnNote(index) {
     const el = document.createElement("div");
-    el.className = "note";
+    el.className = noteTypes[index] === "mouth" ? "note mouth" : "note";
     noteLaneEl.appendChild(el);
     noteEls.set(index, el);
   }
@@ -116,11 +151,11 @@ export function initGame(stageConfig, domRefs) {
     });
   }
 
-  function findNearestBeat(now) {
+  function findNearestBeat(now, type) {
     let nearest = null;
     let nearestDiff = Infinity;
     for (let i = 0; i < beatTimes.length; i++) {
-      if (hitBeats.has(i)) continue;
+      if (hitBeats.has(i) || noteTypes[i] !== type) continue;
       const diff = Math.abs(beatTimes[i] - now);
       if (diff < nearestDiff) {
         nearestDiff = diff;
@@ -130,10 +165,10 @@ export function initGame(stageConfig, domRefs) {
     return { index: nearest, diff: nearestDiff };
   }
 
-  function handleSpace() {
+  function handleAction(type) {
     if (state !== "playing") return;
     const now = audioCtx.currentTime;
-    const { index, diff } = findNearestBeat(now);
+    const { index, diff } = findNearestBeat(now, type);
     if (index === null) return;
 
     if (diff <= PERFECT_WINDOW) {
@@ -246,6 +281,7 @@ export function initGame(stageConfig, domRefs) {
   async function loadAudio() {
     if (audioBuffer) return audioBuffer;
     const res = await fetch(AUDIO_URL);
+    if (!res.ok) throw new Error(`Audio not found: ${AUDIO_URL}`);
     const arrayBuffer = await res.arrayBuffer();
     audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
     return audioBuffer;
@@ -301,7 +337,9 @@ export function initGame(stageConfig, domRefs) {
       measureLane();
 
       startTime = audioCtx.currentTime + LEAD_IN_SEC;
-      beatTimes = beatOffsets.map((t) => startTime + t);
+      const notes = assignNoteTypes(beatOffsets, stageConfig);
+      beatTimes = notes.map((n) => startTime + n.time);
+      noteTypes = notes.map((n) => n.type);
 
       source = audioCtx.createBufferSource();
       source.buffer = buffer;
@@ -322,9 +360,11 @@ export function initGame(stageConfig, domRefs) {
       startBtn.hidden = false;
       startBtn.disabled = false;
       startBtn.textContent = "スタート";
-      showJudgment("音楽の読み込みに失敗しました", "miss");
+      showLoadError();
     }
   }
+
+  applyStageLook();
 
   startBtn.addEventListener("click", playGame);
   restartBtn.addEventListener("click", playGame);
@@ -339,10 +379,5 @@ export function initGame(stageConfig, domRefs) {
     else if (state === "paused") resumeGame();
   });
 
-  document.addEventListener("keydown", (e) => {
-    if (e.code === "Space" || e.key === " " || e.key === "Spacebar") {
-      e.preventDefault();
-      handleSpace();
-    }
-  });
+  inputBus.addEventListener("action", (e) => handleAction(e.detail.type));
 }
