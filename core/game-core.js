@@ -26,9 +26,11 @@ export function initGame(stageConfig, domRefs) {
     overlayTitle: overlayTitleEl,
     overlayScore: overlayScoreEl,
     overlayRetryBtn,
+    volume: volumeEl,
   } = domRefs;
 
   let audioCtx = null;
+  let gainNode = null;
   let audioBuffer = null;
   let source = null;
   let startTime = 0;
@@ -254,6 +256,9 @@ export function initGame(stageConfig, domRefs) {
 
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = volumeEl.value / 100;
+      gainNode.connect(audioCtx.destination);
     }
     if (audioCtx.state === "suspended") {
       await audioCtx.resume();
@@ -300,7 +305,7 @@ export function initGame(stageConfig, domRefs) {
 
       source = audioCtx.createBufferSource();
       source.buffer = buffer;
-      source.connect(audioCtx.destination);
+      source.connect(gainNode);
       source.onended = () => {
         if (state === "playing") endGame();
       };
@@ -324,6 +329,10 @@ export function initGame(stageConfig, domRefs) {
   startBtn.addEventListener("click", playGame);
   restartBtn.addEventListener("click", playGame);
   overlayRetryBtn.addEventListener("click", playGame);
+
+  volumeEl.addEventListener("input", () => {
+    if (gainNode) gainNode.gain.value = volumeEl.value / 100;
+  });
 
   pauseBtn.addEventListener("click", () => {
     if (state === "playing") pauseGame();

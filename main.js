@@ -15,6 +15,7 @@ const ids = [
   "overlayTitle",
   "overlayScore",
   "overlayRetryBtn",
+  "volume",
 ];
 
 const domRefs = Object.fromEntries(

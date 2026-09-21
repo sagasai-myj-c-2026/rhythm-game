@@ -204,6 +204,21 @@ h1 {
   cursor: pointer;
 }
 
+#volumeControl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 0.95rem;
+  color: #a0a0c0;
+}
+
+#volumeControl input {
+  width: 160px;
+  accent-color: #e94560;
+}
+
 #pauseBtn,
 #restartBtn {
   background: #0f3460;
