@@ -2,7 +2,7 @@
 // TODO: 曲・見た目を差し替え。現状はプレースホルダーです。
 export default {
   id: "stage3",
-  title: "Stage 3 (仮)",
+  title: "みっくみくにしてやんよ",
   audioUrl: "assets/songs/stage3.mp3",
   background: { type: "image", value: "assets/bg/back_miku.png" },
   character: {
