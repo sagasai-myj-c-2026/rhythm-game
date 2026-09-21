@@ -34,6 +34,7 @@ initKeyboardInput();
 const hasMouthNotes = (stageConfig.specialNotes?.mouthNoteEvery ?? 0) > 0;
 if (hasMouthNotes) {
   const statusEl = document.getElementById("mouthStatus");
+  const indicatorEl = document.getElementById("mouthIndicator");
   domRefs.startBtn.addEventListener(
     "click",
     async () => {
@@ -43,10 +44,12 @@ if (hasMouthNotes) {
         const { initMouthInput } = await import("./core/input/mouth-input.js");
         await initMouthInput({
           onOpenChange: (open) => {
-            statusEl.textContent = `カメラ: オン(口: ${open ? "開" : "閉"})`;
+            indicatorEl.textContent = open ? "😮" : "😶";
+            indicatorEl.classList.toggle("open", open);
           },
         });
-        statusEl.textContent = "カメラ: オン(口: 閉)";
+        statusEl.textContent = "カメラ: オン";
+        indicatorEl.hidden = false;
       } catch (err) {
         console.error(err);
         statusEl.textContent =
