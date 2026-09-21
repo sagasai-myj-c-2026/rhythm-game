@@ -7,7 +7,13 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="game">
+  <div id="select-screen" hidden>
+    <h1>Space Rhythm</h1>
+    <p class="hint">ステージを選んでください</p>
+    <div id="stage-list"></div>
+  </div>
+
+  <div id="game" hidden>
     <h1>Space Rhythm</h1>
     <p id="stageTitle"></p>
     <p class="hint">近づいてくる印がラインに重なった瞬間に Space キーを押そう</p>
@@ -46,6 +52,8 @@
     </label>
 
     <p id="mouthStatus" hidden></p>
+
+    <a id="backLink" href="./">ステージ選択へ戻る</a>
   </div>
 
   <script type="module" src="main.js"></script>

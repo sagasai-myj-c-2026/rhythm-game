@@ -273,3 +273,50 @@ h1 {
   opacity: 0.5;
   cursor: default;
 }
+
+#select-screen {
+  text-align: center;
+  padding: 24px;
+  width: min(90vw, 420px);
+}
+
+#stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stage-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 2px solid #0f3460;
+  color: #f5f5f5;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.stage-card:active {
+  transform: scale(0.98);
+}
+
+.stage-card-char {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.stage-card-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+#backLink {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: #a0a0c0;
+}
