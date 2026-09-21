@@ -174,17 +174,36 @@ export function initGame(stageConfig, domRefs) {
     return { index: nearest, diff: nearestDiff };
   }
 
+  // Short synthesized blip on every press; pitch says how it went.
+  function playPressSound(type, result) {
+    const pitch = { perfect: 1175, good: 880, miss: 196 }[result];
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const env = audioCtx.createGain();
+    osc.type = type === "mouth" ? "triangle" : "sine";
+    osc.frequency.value = type === "mouth" ? pitch * 0.75 : pitch;
+    env.gain.setValueAtTime(0.3, t);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    osc.connect(env).connect(gainNode);
+    osc.start(t);
+    osc.stop(t + 0.1);
+  }
+
   function handleAction(type) {
     if (state !== "playing") return;
     const now = audioCtx.currentTime;
     const { index, diff } = findNearestBeat(now, type);
-    if (index === null) return;
+    if (index === null) {
+      playPressSound(type, "miss");
+      return;
+    }
 
     if (diff <= PERFECT_WINDOW) {
       hitBeats.add(index);
       score += 100;
       combo += 1;
       showJudgment("Perfect", "perfect");
+      playPressSound(type, "perfect");
       showHitFrame("perfect", now);
       removeNote(index, "perfect");
     } else if (diff <= GOOD_WINDOW) {
@@ -192,11 +211,13 @@ export function initGame(stageConfig, domRefs) {
       score += 50;
       combo += 1;
       showJudgment("Good", "good");
+      playPressSound(type, "good");
       showHitFrame("perfect", now);
       removeNote(index, "good");
     } else {
       combo = 0;
       showJudgment("Miss", "miss");
+      playPressSound(type, "miss");
       showHitFrame("miss", now);
     }
 
