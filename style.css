@@ -24,6 +24,17 @@ h1 {
   font-size: 1.6rem;
 }
 
+#stageTitle {
+  margin: 0 0 8px;
+  color: #ffd700;
+  font-size: 0.95rem;
+}
+
+#character img {
+  height: 4rem;
+  display: block;
+}
+
 .hint {
   margin: 0 0 16px;
   color: #a0a0c0;

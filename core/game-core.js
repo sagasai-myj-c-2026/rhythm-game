@@ -13,6 +13,8 @@ export function initGame(stageConfig, domRefs) {
   } = stageConfig.difficulty;
 
   const {
+    stage: stageEl,
+    stageTitle: stageTitleEl,
     startBtn,
     pauseBtn,
     restartBtn,
@@ -48,6 +50,36 @@ export function initGame(stageConfig, domRefs) {
 
   // "idle" -> "loading" -> "playing" <-> "paused" -> "ended"
   let state = "idle";
+
+  function applyStageLook() {
+    stageTitleEl.textContent = stageConfig.title;
+    document.title = `${stageConfig.title} - Space Rhythm`;
+
+    const { background, character } = stageConfig;
+    if (background.type === "image") {
+      stageEl.style.backgroundImage = `url("${background.value}")`;
+      stageEl.style.backgroundSize = "cover";
+      stageEl.style.backgroundPosition = "center";
+    } else {
+      stageEl.style.background = background.value;
+    }
+
+    if (character.type === "sprite") {
+      const img = document.createElement("img");
+      img.src = character.value;
+      img.alt = "";
+      characterEl.replaceChildren(img);
+    } else {
+      characterEl.textContent = character.value;
+    }
+  }
+
+  function showLoadError() {
+    overlayTitleEl.textContent = "読み込みエラー";
+    overlayScoreEl.textContent =
+      "ファイルが設定されていないため音楽の読み込みに失敗しました";
+    overlayEl.hidden = false;
+  }
 
   function showJudgment(text, cls) {
     judgmentEl.textContent = text;
@@ -246,6 +278,7 @@ export function initGame(stageConfig, domRefs) {
   async function loadAudio() {
     if (audioBuffer) return audioBuffer;
     const res = await fetch(AUDIO_URL);
+    if (!res.ok) throw new Error(`Audio not found: ${AUDIO_URL}`);
     const arrayBuffer = await res.arrayBuffer();
     audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
     return audioBuffer;
@@ -322,9 +355,11 @@ export function initGame(stageConfig, domRefs) {
       startBtn.hidden = false;
       startBtn.disabled = false;
       startBtn.textContent = "スタート";
-      showJudgment("音楽の読み込みに失敗しました", "miss");
+      showLoadError();
     }
   }
+
+  applyStageLook();
 
   startBtn.addEventListener("click", playGame);
   restartBtn.addEventListener("click", playGame);
