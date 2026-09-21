@@ -58,7 +58,7 @@ export default {
   background: { type: "image", value: "assets/bg/back_dra.png" }, // 単色にする場合は { type: "color", value: "#16213e" }
   character: {
     type: "sprite",
-    offsetX: -62.1, // キャラ画像レイヤーを横にずらす量(ステージ幅の%)。キャラをヒットラインの位置に合わせる
+    offsetX: 0.9, // キャラ画像レイヤーを横にずらす量(ステージ幅の%)。キャラをヒットラインの位置に合わせる
     frames: {
       normal: "assets/chars/dra_normal.png",   // 通常(normalとnormal2を交互に表示して動かす)
       normal2: "assets/chars/dra_normal2.png",

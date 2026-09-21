@@ -5,7 +5,7 @@ export default {
   background: { type: "image", value: "assets/bg/back_dra.png" },
   character: {
     type: "sprite",
-    offsetX: -62.1,
+    offsetX: 0.9,
     frames: {
       normal: "assets/chars/dra_normal.png",
       normal2: "assets/chars/dra_normal2.png",

@@ -116,7 +116,7 @@ export function initGame(stageConfig, domRefs) {
     const laneRect = noteLaneEl.getBoundingClientRect();
     const hitRect = hitLineEl.getBoundingClientRect();
     hitLineX = hitRect.left - laneRect.left + hitRect.width / 2;
-    spawnX = laneRect.width + 20;
+    spawnX = -laneRect.width * 0.05;
   }
 
   function spawnNote(index) {

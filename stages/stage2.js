@@ -7,7 +7,7 @@ export default {
   background: { type: "image", value: "assets/bg/back_cappa.png" },
   character: {
     type: "sprite",
-    offsetX: -64.5,
+    offsetX: -1.5,
     frames: {
       normal: "assets/chars/cappa_normal.png",
       normal2: "assets/chars/cappa_normal2.png",

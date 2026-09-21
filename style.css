@@ -62,7 +62,7 @@ h1 {
 
 #hitLine {
   position: absolute;
-  left: 17%;
+  left: 80%;
   top: 50%;
   width: max(3px, 0.5cqw);
   height: 22cqw;
@@ -299,7 +299,7 @@ h1 {
 #mouthIndicator {
   position: absolute;
   z-index: 3;
-  right: 2cqw;
+  left: 2cqw;
   bottom: 1.5cqw;
   font-size: clamp(3rem, 7cqw, 5rem);
   line-height: 1;
