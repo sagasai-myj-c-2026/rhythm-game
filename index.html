@@ -9,11 +9,22 @@
 <body>
   <div id="game">
     <h1>Space Rhythm</h1>
-    <p class="hint">曲に合わせて Space キーを押そう</p>
+    <p class="hint">近づいてくる印がラインに重なった瞬間に Space キーを押そう</p>
 
     <div id="stage">
+      <div id="noteLane">
+        <div id="hitLine"></div>
+      </div>
       <div id="character">🐰</div>
       <div id="judgment"></div>
+
+      <div id="overlay" hidden>
+        <div id="overlayContent">
+          <h2 id="overlayTitle">終了！</h2>
+          <p id="overlayScore"></p>
+          <button id="overlayRetryBtn">もう一度プレイ</button>
+        </div>
+      </div>
     </div>
 
     <div id="hud">
@@ -21,7 +32,11 @@
       <div>Combo: <span id="combo">0</span></div>
     </div>
 
-    <button id="startBtn">スタート</button>
+    <div id="controls">
+      <button id="startBtn">スタート</button>
+      <button id="pauseBtn" hidden>一時停止</button>
+      <button id="restartBtn" hidden>最初から</button>
+    </div>
   </div>
 
   <script src="game.js"></script>

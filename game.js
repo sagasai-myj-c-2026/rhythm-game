@@ -1,14 +1,23 @@
 const AUDIO_URL = "maou_inst_short_14_shining_star.mp3";
 const LEAD_IN_SEC = 0.5;
+const NOTE_LEAD_SEC = 1.1;
 const PERFECT_WINDOW = 0.08;
 const GOOD_WINDOW = 0.18;
 const MIN_BEAT_GAP_SEC = 0.3;
 
 const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const restartBtn = document.getElementById("restartBtn");
 const characterEl = document.getElementById("character");
 const judgmentEl = document.getElementById("judgment");
 const scoreEl = document.getElementById("score");
 const comboEl = document.getElementById("combo");
+const noteLaneEl = document.getElementById("noteLane");
+const hitLineEl = document.getElementById("hitLine");
+const overlayEl = document.getElementById("overlay");
+const overlayTitleEl = document.getElementById("overlayTitle");
+const overlayScoreEl = document.getElementById("overlayScore");
+const overlayRetryBtn = document.getElementById("overlayRetryBtn");
 
 let audioCtx = null;
 let audioBuffer = null;
@@ -21,7 +30,13 @@ let score = 0;
 let combo = 0;
 let rafId = null;
 let lastBeatIndex = -1;
-let playing = false;
+let spawnPointer = 0;
+let noteEls = new Map();
+let hitLineX = 0;
+let spawnX = 0;
+
+// "idle" -> "loading" -> "playing" <-> "paused" -> "ended"
+let state = "idle";
 
 // Simple energy-based onset detection: split the track into short windows,
 // flag a window as a beat when its energy spikes well above the recent
@@ -88,6 +103,61 @@ function bounceCharacter() {
   setTimeout(() => characterEl.classList.remove("beat"), 90);
 }
 
+function flashCharacter(cls) {
+  characterEl.classList.remove("hit-perfect", "hit-good", "hit-miss");
+  void characterEl.offsetWidth;
+  characterEl.classList.add(cls);
+  setTimeout(() => characterEl.classList.remove(cls), 200);
+}
+
+function measureLane() {
+  const laneRect = noteLaneEl.getBoundingClientRect();
+  const hitRect = hitLineEl.getBoundingClientRect();
+  hitLineX = hitRect.left - laneRect.left + hitRect.width / 2;
+  spawnX = laneRect.width + 20;
+}
+
+function spawnNote(index) {
+  const el = document.createElement("div");
+  el.className = "note";
+  noteLaneEl.appendChild(el);
+  noteEls.set(index, el);
+}
+
+function removeNote(index, cls) {
+  const el = noteEls.get(index);
+  if (!el) return;
+  noteEls.delete(index);
+  if (cls) {
+    el.classList.add(cls);
+    setTimeout(() => el.remove(), 250);
+  } else {
+    el.remove();
+  }
+}
+
+function clearAllNotes() {
+  noteEls.forEach((el) => el.remove());
+  noteEls.clear();
+}
+
+function updateNotes(now) {
+  while (
+    spawnPointer < beatTimes.length &&
+    beatTimes[spawnPointer] <= now + NOTE_LEAD_SEC
+  ) {
+    if (!hitBeats.has(spawnPointer)) spawnNote(spawnPointer);
+    spawnPointer++;
+  }
+
+  noteEls.forEach((el, index) => {
+    const t = beatTimes[index];
+    const progress = (t - now) / NOTE_LEAD_SEC;
+    const x = hitLineX + progress * (spawnX - hitLineX);
+    el.style.transform = `translate(${x}px, -50%)`;
+  });
+}
+
 function findNearestBeat(now) {
   let nearest = null;
   let nearestDiff = Infinity;
@@ -103,7 +173,7 @@ function findNearestBeat(now) {
 }
 
 function handleSpace() {
-  if (!playing) return;
+  if (state !== "playing") return;
   const now = audioCtx.currentTime;
   const { index, diff } = findNearestBeat(now);
   if (index === null) return;
@@ -113,14 +183,19 @@ function handleSpace() {
     score += 100;
     combo += 1;
     showJudgment("Perfect", "perfect");
+    flashCharacter("hit-perfect");
+    removeNote(index, "perfect");
   } else if (diff <= GOOD_WINDOW) {
     hitBeats.add(index);
     score += 50;
     combo += 1;
     showJudgment("Good", "good");
+    flashCharacter("hit-good");
+    removeNote(index, "good");
   } else {
     combo = 0;
     showJudgment("Miss", "miss");
+    flashCharacter("hit-miss");
   }
 
   scoreEl.textContent = score;
@@ -133,6 +208,7 @@ function checkMissedBeats(now) {
       hitBeats.add(i);
       combo = 0;
       comboEl.textContent = combo;
+      removeNote(i, "miss");
     }
   });
 }
@@ -140,6 +216,7 @@ function checkMissedBeats(now) {
 function tick() {
   const now = audioCtx.currentTime;
   checkMissedBeats(now);
+  updateNotes(now);
 
   let currentBeatIndex = lastBeatIndex;
   for (let i = lastBeatIndex + 1; i < beatTimes.length; i++) {
@@ -154,17 +231,58 @@ function tick() {
     bounceCharacter();
   }
 
-  if (playing) {
+  if (state === "playing") {
     rafId = requestAnimationFrame(tick);
   }
 }
 
+function setControlsForState() {
+  if (state === "loading") {
+    startBtn.hidden = false;
+    startBtn.disabled = true;
+    startBtn.textContent = "読み込み中...";
+    pauseBtn.hidden = true;
+    restartBtn.hidden = true;
+  } else if (state === "playing" || state === "paused") {
+    startBtn.hidden = true;
+    pauseBtn.hidden = false;
+    pauseBtn.disabled = false;
+    pauseBtn.textContent = state === "paused" ? "再開" : "一時停止";
+    restartBtn.hidden = false;
+    restartBtn.disabled = false;
+  } else {
+    // idle or ended
+    startBtn.hidden = true;
+    pauseBtn.hidden = true;
+    restartBtn.hidden = false;
+    restartBtn.disabled = false;
+  }
+}
+
 function endGame() {
-  playing = false;
+  state = "ended";
   cancelAnimationFrame(rafId);
-  startBtn.disabled = false;
-  startBtn.textContent = "もう一度プレイ";
-  showJudgment(`終了！ Score: ${score}`, "perfect");
+  clearAllNotes();
+  setControlsForState();
+  overlayTitleEl.textContent = "終了！";
+  overlayScoreEl.textContent = `Score: ${score}`;
+  overlayEl.hidden = false;
+}
+
+function pauseGame() {
+  if (state !== "playing") return;
+  audioCtx.suspend();
+  cancelAnimationFrame(rafId);
+  state = "paused";
+  setControlsForState();
+}
+
+function resumeGame() {
+  if (state !== "paused") return;
+  audioCtx.resume();
+  state = "playing";
+  setControlsForState();
+  rafId = requestAnimationFrame(tick);
 }
 
 async function loadAudio() {
@@ -175,13 +293,32 @@ async function loadAudio() {
   return audioBuffer;
 }
 
-async function startGame() {
+async function playGame() {
+  if (state === "loading") return;
+
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (audioCtx.state === "suspended") {
+    await audioCtx.resume();
+  }
 
-  startBtn.disabled = true;
-  startBtn.textContent = "読み込み中...";
+  if (source) {
+    source.onended = null;
+    try {
+      source.stop();
+    } catch (err) {
+      // already stopped
+    }
+    source = null;
+  }
+
+  overlayEl.hidden = true;
+
+  if (!audioBuffer) {
+    state = "loading";
+    setControlsForState();
+  }
 
   try {
     const buffer = await loadAudio();
@@ -193,10 +330,14 @@ async function startGame() {
     combo = 0;
     hitBeats = new Set();
     lastBeatIndex = -1;
+    spawnPointer = 0;
+    clearAllNotes();
     scoreEl.textContent = "0";
     comboEl.textContent = "0";
     judgmentEl.className = "";
     judgmentEl.textContent = "";
+
+    measureLane();
 
     startTime = audioCtx.currentTime + LEAD_IN_SEC;
     beatTimes = beatOffsets.map((t) => startTime + t);
@@ -205,23 +346,33 @@ async function startGame() {
     source.buffer = buffer;
     source.connect(audioCtx.destination);
     source.onended = () => {
-      if (playing) endGame();
+      if (state === "playing") endGame();
     };
     source.start(startTime);
 
-    playing = true;
-    startBtn.textContent = "プレイ中...";
+    state = "playing";
+    setControlsForState();
 
     rafId = requestAnimationFrame(tick);
   } catch (err) {
     console.error(err);
+    state = "idle";
+    setControlsForState();
+    startBtn.hidden = false;
     startBtn.disabled = false;
     startBtn.textContent = "スタート";
     showJudgment("音楽の読み込みに失敗しました", "miss");
   }
 }
 
-startBtn.addEventListener("click", startGame);
+startBtn.addEventListener("click", playGame);
+restartBtn.addEventListener("click", playGame);
+overlayRetryBtn.addEventListener("click", playGame);
+
+pauseBtn.addEventListener("click", () => {
+  if (state === "playing") pauseGame();
+  else if (state === "paused") resumeGame();
+});
 
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space" || e.key === " " || e.key === "Spacebar") {
