@@ -1,5 +1,6 @@
 import { detectBeats } from "./beat-detector.js";
 import { inputBus } from "./input/input-bus.js";
+import { assignNoteTypes } from "./note-types.js";
 
 const LEAD_IN_SEC = 0.5;
 
@@ -39,6 +40,7 @@ export function initGame(stageConfig, domRefs) {
   let startTime = 0;
   let beatOffsets = [];
   let beatTimes = [];
+  let noteTypes = [];
   let hitBeats = new Set();
   let score = 0;
   let combo = 0;
@@ -110,7 +112,7 @@ export function initGame(stageConfig, domRefs) {
 
   function spawnNote(index) {
     const el = document.createElement("div");
-    el.className = "note";
+    el.className = noteTypes[index] === "mouth" ? "note mouth" : "note";
     noteLaneEl.appendChild(el);
     noteEls.set(index, el);
   }
@@ -149,11 +151,11 @@ export function initGame(stageConfig, domRefs) {
     });
   }
 
-  function findNearestBeat(now) {
+  function findNearestBeat(now, type) {
     let nearest = null;
     let nearestDiff = Infinity;
     for (let i = 0; i < beatTimes.length; i++) {
-      if (hitBeats.has(i)) continue;
+      if (hitBeats.has(i) || noteTypes[i] !== type) continue;
       const diff = Math.abs(beatTimes[i] - now);
       if (diff < nearestDiff) {
         nearestDiff = diff;
@@ -166,7 +168,7 @@ export function initGame(stageConfig, domRefs) {
   function handleAction(type) {
     if (state !== "playing") return;
     const now = audioCtx.currentTime;
-    const { index, diff } = findNearestBeat(now);
+    const { index, diff } = findNearestBeat(now, type);
     if (index === null) return;
 
     if (diff <= PERFECT_WINDOW) {
@@ -335,7 +337,9 @@ export function initGame(stageConfig, domRefs) {
       measureLane();
 
       startTime = audioCtx.currentTime + LEAD_IN_SEC;
-      beatTimes = beatOffsets.map((t) => startTime + t);
+      const notes = assignNoteTypes(beatOffsets, stageConfig);
+      beatTimes = notes.map((n) => startTime + n.time);
+      noteTypes = notes.map((n) => n.type);
 
       source = audioCtx.createBufferSource();
       source.buffer = buffer;
