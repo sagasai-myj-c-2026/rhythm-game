@@ -30,3 +30,29 @@ const stageConfig = stages[requestedId] ?? stages[defaultStageId];
 
 initGame(stageConfig, domRefs);
 initKeyboardInput();
+
+const hasMouthNotes = (stageConfig.specialNotes?.mouthNoteEvery ?? 0) > 0;
+if (hasMouthNotes) {
+  const statusEl = document.getElementById("mouthStatus");
+  domRefs.startBtn.addEventListener(
+    "click",
+    async () => {
+      statusEl.hidden = false;
+      statusEl.textContent = "カメラを準備中...";
+      try {
+        const { initMouthInput } = await import("./core/input/mouth-input.js");
+        await initMouthInput({
+          onOpenChange: (open) => {
+            statusEl.textContent = `カメラ: オン(口: ${open ? "開" : "閉"})`;
+          },
+        });
+        statusEl.textContent = "カメラ: オン(口: 閉)";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent =
+          "カメラを使えないため、口ノーツはMissになります";
+      }
+    },
+    { once: true }
+  );
+}
