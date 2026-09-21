@@ -1,4 +1,5 @@
 import { detectBeats } from "./beat-detector.js";
+import { inputBus } from "./input/input-bus.js";
 
 const LEAD_IN_SEC = 0.5;
 
@@ -162,7 +163,7 @@ export function initGame(stageConfig, domRefs) {
     return { index: nearest, diff: nearestDiff };
   }
 
-  function handleSpace() {
+  function handleAction(type) {
     if (state !== "playing") return;
     const now = audioCtx.currentTime;
     const { index, diff } = findNearestBeat(now);
@@ -374,10 +375,5 @@ export function initGame(stageConfig, domRefs) {
     else if (state === "paused") resumeGame();
   });
 
-  document.addEventListener("keydown", (e) => {
-    if (e.code === "Space" || e.key === " " || e.key === "Spacebar") {
-      e.preventDefault();
-      handleSpace();
-    }
-  });
+  inputBus.addEventListener("action", (e) => handleAction(e.detail.type));
 }

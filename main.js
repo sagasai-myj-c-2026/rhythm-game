@@ -1,5 +1,6 @@
 import { initGame } from "./core/game-core.js";
 import { stages, defaultStageId } from "./stages/index.js";
+import { initKeyboardInput } from "./core/input/keyboard-input.js";
 
 const ids = [
   "stage",
@@ -28,3 +29,4 @@ const requestedId = new URLSearchParams(location.search).get("stage");
 const stageConfig = stages[requestedId] ?? stages[defaultStageId];
 
 initGame(stageConfig, domRefs);
+initKeyboardInput();
