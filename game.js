@@ -1,8 +1,8 @@
-const BPM = 100;
-const BEAT_SEC = 60 / BPM;
-const TOTAL_BEATS = 32;
+const AUDIO_URL = "maou_inst_short_14_shining_star.mp3";
+const LEAD_IN_SEC = 0.5;
 const PERFECT_WINDOW = 0.08;
 const GOOD_WINDOW = 0.18;
+const MIN_BEAT_GAP_SEC = 0.3;
 
 const startBtn = document.getElementById("startBtn");
 const characterEl = document.getElementById("character");
@@ -11,31 +11,69 @@ const scoreEl = document.getElementById("score");
 const comboEl = document.getElementById("combo");
 
 let audioCtx = null;
+let audioBuffer = null;
+let source = null;
 let startTime = 0;
+let beatOffsets = [];
 let beatTimes = [];
 let hitBeats = new Set();
 let score = 0;
 let combo = 0;
 let rafId = null;
+let lastBeatIndex = -1;
+let playing = false;
 
-function playClick(ctx, time) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.frequency.value = 880;
-  gain.gain.setValueAtTime(0.2, time);
-  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start(time);
-  osc.stop(time + 0.05);
-}
+// Simple energy-based onset detection: split the track into short windows,
+// flag a window as a beat when its energy spikes well above the recent
+// local average, with a minimum gap so we don't fire on every sample.
+function detectBeats(buffer) {
+  const sampleRate = buffer.sampleRate;
+  const channelCount = buffer.numberOfChannels;
+  const length = buffer.length;
 
-function scheduleBeats() {
-  beatTimes = [];
-  for (let i = 0; i < TOTAL_BEATS; i++) {
-    const t = startTime + i * BEAT_SEC;
-    beatTimes.push(t);
-    playClick(audioCtx, t);
+  const mono = new Float32Array(length);
+  for (let c = 0; c < channelCount; c++) {
+    const data = buffer.getChannelData(c);
+    for (let i = 0; i < length; i++) {
+      mono[i] += data[i] / channelCount;
+    }
   }
+
+  const windowSize = 1024;
+  const windowCount = Math.ceil(length / windowSize);
+  const energies = new Float32Array(windowCount);
+  for (let w = 0; w < windowCount; w++) {
+    const start = w * windowSize;
+    const end = Math.min(start + windowSize, length);
+    let sum = 0;
+    for (let i = start; i < end; i++) {
+      sum += mono[i] * mono[i];
+    }
+    energies[w] = sum;
+  }
+
+  const historyWindows = Math.round((1.0 * sampleRate) / windowSize);
+  const minGapWindows = Math.round((MIN_BEAT_GAP_SEC * sampleRate) / windowSize);
+
+  const beats = [];
+  let lastBeatWindow = -Infinity;
+  for (let w = 1; w < windowCount; w++) {
+    const histStart = Math.max(0, w - historyWindows);
+    let avg = 0;
+    for (let k = histStart; k < w; k++) avg += energies[k];
+    avg /= Math.max(1, w - histStart);
+
+    const threshold = avg * 1.4;
+    if (
+      energies[w] > threshold &&
+      energies[w] > 1e-6 &&
+      w - lastBeatWindow > minGapWindows
+    ) {
+      beats.push((w * windowSize) / sampleRate);
+      lastBeatWindow = w;
+    }
+  }
+  return beats;
 }
 
 function showJudgment(text, cls) {
@@ -65,10 +103,9 @@ function findNearestBeat(now) {
 }
 
 function handleSpace() {
-  if (!audioCtx) return;
+  if (!playing) return;
   const now = audioCtx.currentTime;
   const { index, diff } = findNearestBeat(now);
-
   if (index === null) return;
 
   if (diff <= PERFECT_WINDOW) {
@@ -100,51 +137,88 @@ function checkMissedBeats(now) {
   });
 }
 
-let lastBeatIndex = -1;
 function tick() {
   const now = audioCtx.currentTime;
   checkMissedBeats(now);
 
-  const currentBeatIndex = Math.floor((now - startTime) / BEAT_SEC);
-  if (currentBeatIndex !== lastBeatIndex && currentBeatIndex >= 0 && currentBeatIndex < TOTAL_BEATS) {
+  let currentBeatIndex = lastBeatIndex;
+  for (let i = lastBeatIndex + 1; i < beatTimes.length; i++) {
+    if (beatTimes[i] <= now) {
+      currentBeatIndex = i;
+    } else {
+      break;
+    }
+  }
+  if (currentBeatIndex !== lastBeatIndex) {
     lastBeatIndex = currentBeatIndex;
     bounceCharacter();
   }
 
-  if (now - startTime < TOTAL_BEATS * BEAT_SEC + 1) {
+  if (playing) {
     rafId = requestAnimationFrame(tick);
-  } else {
-    endGame();
   }
 }
 
 function endGame() {
+  playing = false;
+  cancelAnimationFrame(rafId);
   startBtn.disabled = false;
   startBtn.textContent = "もう一度プレイ";
   showJudgment(`終了！ Score: ${score}`, "perfect");
-  cancelAnimationFrame(rafId);
 }
 
-function startGame() {
+async function loadAudio() {
+  if (audioBuffer) return audioBuffer;
+  const res = await fetch(AUDIO_URL);
+  const arrayBuffer = await res.arrayBuffer();
+  audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  return audioBuffer;
+}
+
+async function startGame() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  score = 0;
-  combo = 0;
-  hitBeats = new Set();
-  lastBeatIndex = -1;
-  scoreEl.textContent = "0";
-  comboEl.textContent = "0";
-  judgmentEl.className = "";
-  judgmentEl.textContent = "";
-
-  startTime = audioCtx.currentTime + 1;
-  scheduleBeats();
 
   startBtn.disabled = true;
-  startBtn.textContent = "プレイ中...";
+  startBtn.textContent = "読み込み中...";
 
-  rafId = requestAnimationFrame(tick);
+  try {
+    const buffer = await loadAudio();
+    if (!beatOffsets.length) {
+      beatOffsets = detectBeats(buffer);
+    }
+
+    score = 0;
+    combo = 0;
+    hitBeats = new Set();
+    lastBeatIndex = -1;
+    scoreEl.textContent = "0";
+    comboEl.textContent = "0";
+    judgmentEl.className = "";
+    judgmentEl.textContent = "";
+
+    startTime = audioCtx.currentTime + LEAD_IN_SEC;
+    beatTimes = beatOffsets.map((t) => startTime + t);
+
+    source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.onended = () => {
+      if (playing) endGame();
+    };
+    source.start(startTime);
+
+    playing = true;
+    startBtn.textContent = "プレイ中...";
+
+    rafId = requestAnimationFrame(tick);
+  } catch (err) {
+    console.error(err);
+    startBtn.disabled = false;
+    startBtn.textContent = "スタート";
+    showJudgment("音楽の読み込みに失敗しました", "miss");
+  }
 }
 
 startBtn.addEventListener("click", startGame);
