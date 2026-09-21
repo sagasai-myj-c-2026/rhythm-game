@@ -30,35 +30,108 @@ h1 {
   font-size: 0.9rem;
 }
 
+/* Stage: the background swaps here later (color, gradient or image). */
 #stage {
   position: relative;
   height: 220px;
   background: #16213e;
   border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
   border: 2px solid #0f3460;
 }
 
+#noteLane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#hitLine {
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  width: 4px;
+  height: 70px;
+  transform: translate(-50%, -50%);
+  background: #e94560;
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(233, 69, 96, 0.7);
+}
+
+.note {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+
+.note.perfect {
+  background: #ffd700;
+  opacity: 0;
+  transform: scale(1.8);
+}
+
+.note.good {
+  background: #4ade80;
+  opacity: 0;
+  transform: scale(1.8);
+}
+
+.note.miss {
+  background: #f87171;
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+/* Character: the emoji swaps here later for custom art. */
 #character {
-  font-size: 5rem;
-  transition: transform 0.08s ease-out;
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 4rem;
+  transition: transform 0.1s ease-out, filter 0.1s ease-out;
 }
 
 #character.beat {
-  transform: scale(1.25);
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+#character.hit-perfect {
+  transform: translate(-50%, -50%) scale(1.4);
+  filter: drop-shadow(0 0 14px #ffd700);
+}
+
+#character.hit-good {
+  transform: translate(-50%, -50%) scale(1.25);
+  filter: drop-shadow(0 0 12px #4ade80);
+}
+
+#character.hit-miss {
+  transform: translate(-50%, -50%) scale(0.85) rotate(-10deg);
+  filter: drop-shadow(0 0 12px #f87171);
 }
 
 #judgment {
   position: absolute;
-  top: 20px;
+  top: 16px;
   left: 0;
   right: 0;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: bold;
   opacity: 0;
+  pointer-events: none;
 }
 
 #judgment.show {
@@ -74,6 +147,40 @@ h1 {
   100% { opacity: 0; transform: translateY(-20px) scale(1); }
 }
 
+#overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 20, 0.82);
+}
+
+#overlay[hidden] {
+  display: none;
+}
+
+#overlayContent h2 {
+  margin: 0 0 8px;
+}
+
+#overlayContent p {
+  margin: 0 0 16px;
+  font-size: 1.3rem;
+  color: #ffd700;
+  font-weight: bold;
+}
+
+#overlayRetryBtn {
+  padding: 8px 24px;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 999px;
+  background: #e94560;
+  color: white;
+  cursor: pointer;
+}
+
 #hud {
   display: flex;
   justify-content: space-around;
@@ -81,8 +188,14 @@ h1 {
   font-size: 1.1rem;
 }
 
-#startBtn {
-  padding: 10px 28px;
+#controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+#controls button {
+  padding: 10px 24px;
   font-size: 1rem;
   border: none;
   border-radius: 999px;
@@ -91,11 +204,16 @@ h1 {
   cursor: pointer;
 }
 
-#startBtn:active {
+#pauseBtn,
+#restartBtn {
+  background: #0f3460;
+}
+
+#controls button:active {
   transform: scale(0.97);
 }
 
-#startBtn:disabled {
+#controls button:disabled {
   opacity: 0.5;
   cursor: default;
 }
