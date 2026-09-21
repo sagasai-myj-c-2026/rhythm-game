@@ -153,15 +153,24 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 20, 0.82);
+  background: rgba(10, 10, 20, 0.88);
 }
 
 #overlay[hidden] {
   display: none;
 }
 
+#overlayContent {
+  padding: 24px 28px;
+  background: rgba(22, 33, 62, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  text-align: center;
+}
+
 #overlayContent h2 {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
+  font-size: 1.6rem;
 }
 
 #overlayContent p {
@@ -172,7 +181,7 @@ h1 {
 }
 
 #overlayRetryBtn {
-  padding: 8px 24px;
+  padding: 10px 28px;
   font-size: 0.95rem;
   border: none;
   border-radius: 999px;
@@ -181,11 +190,56 @@ h1 {
   cursor: pointer;
 }
 
+#overlayRetryBtn:hover {
+  filter: brightness(1.15);
+}
+
 #hud {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
+  gap: 12px;
   margin: 16px 0;
-  font-size: 1.1rem;
+}
+
+.hudItem {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(15, 52, 96, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  text-align: center;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.hudItem:hover {
+  transform: translateY(-2px);
+}
+
+.hudLabel {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: #a0a0c0;
+}
+
+.hudValue {
+  display: block;
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+}
+
+#score {
+  color: #ffffff;
+}
+
+#combo {
+  color: #ffd700;
+  font-size: 2rem;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.45);
 }
 
 #controls {
@@ -193,15 +247,24 @@ h1 {
   justify-content: center;
   gap: 10px;
 }
-
 #controls button {
-  padding: 10px 24px;
+  padding: 11px 26px;
   font-size: 1rem;
+  font-weight: bold;
   border: none;
   border-radius: 999px;
   background: #e94560;
   color: white;
   cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+#controls button:hover {
+  filter: brightness(1.15);
+}
+
+#controls button:active {
+  transform: scale(0.96);
 }
 
 #volumeControl {
@@ -211,17 +274,25 @@ h1 {
   gap: 10px;
   margin-top: 16px;
   font-size: 0.95rem;
-  color: #a0a0c0;
+  font-weight: 600;
+  color: #c0c0d8;
 }
 
 #volumeControl input {
   width: 160px;
+  height: 6px;
   accent-color: #e94560;
+  cursor: pointer;
+}
+
+#volumeControl input:hover {
+  filter: brightness(1.15);
 }
 
 #pauseBtn,
 #restartBtn {
   background: #0f3460;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
 #controls button:active {
