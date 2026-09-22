@@ -21,6 +21,6 @@ export default {
     energyThreshold: 1.4,
   },
   specialNotes: {
-    mouthNoteEvery: 8,
+    mouthNoteEvery: 0,
   },
 };
