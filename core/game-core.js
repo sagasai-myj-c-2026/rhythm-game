@@ -17,7 +17,9 @@ export function initGame(stageConfig, domRefs) {
     gridSubdivision = 0,
   } = stageConfig.difficulty;
 
-  const DEBUG_NOTES = new URLSearchParams(location.search).get("debug") === "1";
+  const params = new URLSearchParams(location.search);
+  const DEBUG_NOTES = params.get("debug") === "1";
+  const RECORD_MODE = params.get("record") === "1";
 
   const {
     stage: stageEl,
