@@ -364,7 +364,7 @@ export function initGame(stageConfig, domRefs) {
 
     try {
       const buffer = await loadAudio();
-      if (!beatOffsets.length) {
+      if (!RECORD_MODE && !beatOffsets.length) {
         beatOffsets = detectBeats(buffer, { minBeatGapSec, energyThreshold });
         if (gridSubdivision > 0) {
           beatOffsets = snapBeatsToGrid(buffer, beatOffsets, {
@@ -388,18 +388,18 @@ export function initGame(stageConfig, domRefs) {
         if (DEBUG_NOTES) {
           console.table(beatOffsets.map((t, i) => ({ i, t: t.toFixed(3) })));
         }
-        if (RECORD_MODE) beatOffsets = [];
       }
 
       score = 0;
       combo = 0;
       recordedTimes = [];
+      beatOffsets = RECORD_MODE ? [] : beatOffsets;
       hitBeats = new Set();
       hitFrameUntil = 0;
       setCharacterFrame("normal");
       spawnPointer = 0;
       clearAllNotes();
-      scoreEl.textContent = "0";
+      scoreEl.textContent = RECORD_MODE ? "● 0" : "0";
       comboEl.textContent = "0";
       judgmentEl.className = "";
       judgmentEl.textContent = "";
