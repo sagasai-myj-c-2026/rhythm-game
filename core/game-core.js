@@ -17,6 +17,8 @@ export function initGame(stageConfig, domRefs) {
     gridSubdivision = 0,
   } = stageConfig.difficulty;
 
+  const DEBUG_NOTES = new URLSearchParams(location.search).get("debug") === "1";
+
   const {
     stage: stageEl,
     stageTitle: stageTitleEl,
@@ -123,6 +125,12 @@ export function initGame(stageConfig, domRefs) {
   function spawnNote(index) {
     const el = document.createElement("div");
     el.className = noteTypes[index] === "mouth" ? "note mouth" : "note";
+    if (DEBUG_NOTES) {
+      const label = document.createElement("div");
+      label.className = "note-debug-label";
+      label.textContent = `#${index} ${beatOffsets[index].toFixed(2)}s`;
+      el.appendChild(label);
+    }
     noteLaneEl.appendChild(el);
     noteEls.set(index, el);
   }
@@ -347,6 +355,22 @@ export function initGame(stageConfig, domRefs) {
             subdivision: gridSubdivision,
             minBeatGapSec,
           });
+        }
+        // Apply manual patch: remove unwanted beats, then add extras, then sort.
+        const patch = stageConfig.notesPatch;
+        if (patch) {
+          const PATCH_TOLERANCE = 0.08;
+          if (patch.remove?.length) {
+            beatOffsets = beatOffsets.filter(
+              (t) => !patch.remove.some((r) => Math.abs(t - r) <= PATCH_TOLERANCE)
+            );
+          }
+          if (patch.add?.length) {
+            beatOffsets = [...beatOffsets, ...patch.add].sort((a, b) => a - b);
+          }
+        }
+        if (DEBUG_NOTES) {
+          console.table(beatOffsets.map((t, i) => ({ i, t: t.toFixed(3) })));
         }
       }
 

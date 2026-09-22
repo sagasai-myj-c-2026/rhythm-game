@@ -26,4 +26,9 @@ export default {
   specialNotes: {
     mouthNoteEvery: 4,
   },
+  // Manual timing patch. Use ?debug=1 in the URL to see note index + seconds
+  // above each note. Add bad-feeling note times to "remove" (±0.08s tolerance)
+  // and any missing beats to "add". Example:
+  //   notesPatch: { remove: [12.45, 24.90], add: [13.10] }
+  notesPatch: { remove: [], add: [] },
 };

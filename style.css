@@ -113,6 +113,23 @@ h1 {
   transform: scale(0.6);
 }
 
+/* Debug overlay: note index + timestamp shown above each note in ?debug=1 */
+.note-debug-label {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(-50%, calc(-50% - 3.2cqw));
+  font-size: 1.1cqw;
+  line-height: 1.3;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 0.15cqw 0.4cqw;
+  border-radius: 0.3cqw;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+}
+
 /* Character: full-frame transparent layers, one visible per data-frame. */
 #character {
   position: absolute;
