@@ -62,7 +62,7 @@ h1 {
 
 #hitLine {
   position: absolute;
-  left: 80%;
+  left: 70%;
   top: 50%;
   width: max(3px, 0.5cqw);
   height: 22cqw;
