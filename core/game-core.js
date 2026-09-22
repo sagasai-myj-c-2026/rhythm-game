@@ -1,8 +1,10 @@
-import { detectBeats } from "./beat-detector.js";
+import { detectBeats, snapBeatsToGrid } from "./beat-detector.js";
 import { inputBus } from "./input/input-bus.js";
 import { assignNoteTypes } from "./note-types.js";
 
 const LEAD_IN_SEC = 0.5;
+const IDLE_FRAME_SEC = 0.3;
+const HIT_FRAME_SEC = 0.3;
 
 export function initGame(stageConfig, domRefs) {
   const AUDIO_URL = stageConfig.audioUrl;
@@ -12,7 +14,12 @@ export function initGame(stageConfig, domRefs) {
     noteLeadSec: NOTE_LEAD_SEC,
     minBeatGapSec,
     energyThreshold,
+    gridSubdivision = 0,
   } = stageConfig.difficulty;
+
+  const params = new URLSearchParams(location.search);
+  const DEBUG_NOTES = params.get("debug") === "1";
+  const RECORD_MODE = params.get("record") === "1";
 
   const {
     stage: stageEl,
@@ -45,11 +52,12 @@ export function initGame(stageConfig, domRefs) {
   let score = 0;
   let combo = 0;
   let rafId = null;
-  let lastBeatIndex = -1;
+  let hitFrameUntil = 0;
   let spawnPointer = 0;
   let noteEls = new Map();
   let hitLineX = 0;
   let spawnX = 0;
+  let recordedTimes = [];
 
   // "idle" -> "loading" -> "playing" <-> "paused" -> "ended"
   let state = "idle";
@@ -67,14 +75,17 @@ export function initGame(stageConfig, domRefs) {
       stageEl.style.background = background.value;
     }
 
-    if (character.type === "sprite") {
-      const img = document.createElement("img");
-      img.src = character.value;
-      img.alt = "";
-      characterEl.replaceChildren(img);
-    } else {
-      characterEl.textContent = character.value;
-    }
+    characterEl.style.setProperty("--char-offset", `${character.offsetX ?? 0}%`);
+    characterEl.replaceChildren(
+      ...Object.entries(character.frames).map(([name, url]) => {
+        const img = document.createElement("img");
+        img.className = `frame-${name}`;
+        img.src = url;
+        img.alt = "";
+        return img;
+      })
+    );
+    setCharacterFrame("normal");
   }
 
   function showLoadError() {
@@ -91,28 +102,38 @@ export function initGame(stageConfig, domRefs) {
     judgmentEl.classList.add("show");
   }
 
-  function bounceCharacter() {
-    characterEl.classList.add("beat");
-    setTimeout(() => characterEl.classList.remove("beat"), 90);
+  function setCharacterFrame(name) {
+    if (characterEl.dataset.frame !== name) characterEl.dataset.frame = name;
   }
 
-  function flashCharacter(cls) {
-    characterEl.classList.remove("hit-perfect", "hit-good", "hit-miss");
-    void characterEl.offsetWidth;
-    characterEl.classList.add(cls);
-    setTimeout(() => characterEl.classList.remove(cls), 200);
+  function showHitFrame(name, now) {
+    setCharacterFrame(name);
+    hitFrameUntil = now + HIT_FRAME_SEC;
+  }
+
+  // Swaps normal/normal2 on the audio clock, so it freezes while paused.
+  function updateCharacterFrame(now) {
+    if (now < hitFrameUntil) return;
+    const phase = Math.floor(now / IDLE_FRAME_SEC) % 2;
+    setCharacterFrame(phase === 0 ? "normal" : "normal2");
   }
 
   function measureLane() {
     const laneRect = noteLaneEl.getBoundingClientRect();
     const hitRect = hitLineEl.getBoundingClientRect();
     hitLineX = hitRect.left - laneRect.left + hitRect.width / 2;
-    spawnX = laneRect.width + 20;
+    spawnX = -laneRect.width * 0.05;
   }
 
   function spawnNote(index) {
     const el = document.createElement("div");
     el.className = noteTypes[index] === "mouth" ? "note mouth" : "note";
+    if (DEBUG_NOTES) {
+      const label = document.createElement("div");
+      label.className = "note-debug-label";
+      label.textContent = `#${index} ${beatOffsets[index].toFixed(2)}s`;
+      el.appendChild(label);
+    }
     noteLaneEl.appendChild(el);
     noteEls.set(index, el);
   }
@@ -165,30 +186,58 @@ export function initGame(stageConfig, domRefs) {
     return { index: nearest, diff: nearestDiff };
   }
 
+  // Short synthesized blip on every press; pitch says how it went.
+  function playPressSound(type, result) {
+    const pitch = { perfect: 1175, good: 880, miss: 196 }[result];
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const env = audioCtx.createGain();
+    osc.type = type === "mouth" ? "triangle" : "sine";
+    osc.frequency.value = type === "mouth" ? pitch * 0.75 : pitch;
+    env.gain.setValueAtTime(0.3, t);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    osc.connect(env).connect(gainNode);
+    osc.start(t);
+    osc.stop(t + 0.1);
+  }
+
   function handleAction(type) {
     if (state !== "playing") return;
     const now = audioCtx.currentTime;
+    if (RECORD_MODE) {
+      const t = +(Math.max(0, now - startTime).toFixed(3));
+      recordedTimes.push(t);
+      scoreEl.textContent = `● ${recordedTimes.length}`;
+      playPressSound(type, "perfect");
+      return;
+    }
     const { index, diff } = findNearestBeat(now, type);
-    if (index === null) return;
+    if (index === null) {
+      playPressSound(type, "miss");
+      return;
+    }
 
     if (diff <= PERFECT_WINDOW) {
       hitBeats.add(index);
       score += 100;
       combo += 1;
       showJudgment("Perfect", "perfect");
-      flashCharacter("hit-perfect");
+      playPressSound(type, "perfect");
+      showHitFrame("perfect", now);
       removeNote(index, "perfect");
     } else if (diff <= GOOD_WINDOW) {
       hitBeats.add(index);
       score += 50;
       combo += 1;
       showJudgment("Good", "good");
-      flashCharacter("hit-good");
+      playPressSound(type, "good");
+      showHitFrame("perfect", now);
       removeNote(index, "good");
     } else {
       combo = 0;
       showJudgment("Miss", "miss");
-      flashCharacter("hit-miss");
+      playPressSound(type, "miss");
+      showHitFrame("miss", now);
     }
 
     scoreEl.textContent = score;
@@ -211,18 +260,7 @@ export function initGame(stageConfig, domRefs) {
     checkMissedBeats(now);
     updateNotes(now);
 
-    let currentBeatIndex = lastBeatIndex;
-    for (let i = lastBeatIndex + 1; i < beatTimes.length; i++) {
-      if (beatTimes[i] <= now) {
-        currentBeatIndex = i;
-      } else {
-        break;
-      }
-    }
-    if (currentBeatIndex !== lastBeatIndex) {
-      lastBeatIndex = currentBeatIndex;
-      bounceCharacter();
-    }
+    updateCharacterFrame(now);
 
     if (state === "playing") {
       rafId = requestAnimationFrame(tick);
@@ -255,10 +293,19 @@ export function initGame(stageConfig, domRefs) {
   function endGame() {
     state = "ended";
     cancelAnimationFrame(rafId);
+    setCharacterFrame("normal");
     clearAllNotes();
     setControlsForState();
-    overlayTitleEl.textContent = "終了！";
-    overlayScoreEl.textContent = `Score: ${score}`;
+    if (RECORD_MODE && recordedTimes.length) {
+      const line = `noteTimes: ${JSON.stringify(recordedTimes)},`;
+      navigator.clipboard.writeText(line).catch(() => {});
+      overlayTitleEl.textContent = `${recordedTimes.length}音録音完了`;
+      overlayScoreEl.textContent = "クリップボードにコピーしました！stage3.jsに貼り付けてください。";
+      console.log(line);
+    } else {
+      overlayTitleEl.textContent = "終了！";
+      overlayScoreEl.textContent = `Score: ${score}`;
+    }
     overlayEl.hidden = false;
   }
 
@@ -319,17 +366,44 @@ export function initGame(stageConfig, domRefs) {
 
     try {
       const buffer = await loadAudio();
-      if (!beatOffsets.length) {
+      if (stageConfig.noteTimes) {
+        beatOffsets = stageConfig.noteTimes;
+      } else if (!RECORD_MODE && !beatOffsets.length) {
         beatOffsets = detectBeats(buffer, { minBeatGapSec, energyThreshold });
+        if (gridSubdivision > 0) {
+          beatOffsets = snapBeatsToGrid(buffer, beatOffsets, {
+            subdivision: gridSubdivision,
+            minBeatGapSec,
+          });
+        }
+        // Apply manual patch: remove unwanted beats, then add extras, then sort.
+        const patch = stageConfig.notesPatch;
+        if (patch) {
+          const PATCH_TOLERANCE = 0.08;
+          if (patch.remove?.length) {
+            beatOffsets = beatOffsets.filter(
+              (t) => !patch.remove.some((r) => Math.abs(t - r) <= PATCH_TOLERANCE)
+            );
+          }
+          if (patch.add?.length) {
+            beatOffsets = [...beatOffsets, ...patch.add].sort((a, b) => a - b);
+          }
+        }
+        if (DEBUG_NOTES) {
+          console.table(beatOffsets.map((t, i) => ({ i, t: t.toFixed(3) })));
+        }
       }
 
       score = 0;
       combo = 0;
+      recordedTimes = [];
+      beatOffsets = RECORD_MODE ? [] : beatOffsets;
       hitBeats = new Set();
-      lastBeatIndex = -1;
+      hitFrameUntil = 0;
+      setCharacterFrame("normal");
       spawnPointer = 0;
       clearAllNotes();
-      scoreEl.textContent = "0";
+      scoreEl.textContent = RECORD_MODE ? "● 0" : "0";
       comboEl.textContent = "0";
       judgmentEl.className = "";
       judgmentEl.textContent = "";
@@ -365,6 +439,7 @@ export function initGame(stageConfig, domRefs) {
   }
 
   applyStageLook();
+  window.addEventListener("resize", measureLane);
 
   startBtn.addEventListener("click", playGame);
   restartBtn.addEventListener("click", playGame);

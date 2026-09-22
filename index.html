@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rhythm Game MVP</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rhythm Game MVP</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <div id="select-screen" hidden>
     <h1>Space Rhythm</h1>
@@ -22,7 +24,7 @@
       <div id="noteLane">
         <div id="hitLine"></div>
       </div>
-      <div id="character">🐰</div>
+      <div id="character"></div>
       <div id="judgment"></div>
       <div id="mouthIndicator" hidden>😶</div>
 
@@ -36,8 +38,14 @@
     </div>
 
     <div id="hud">
-      <div>Score: <span id="score">0</span></div>
-      <div>Combo: <span id="combo">0</span></div>
+      <div class="hudItem">
+        <span class="hudLabel">SCORE</span>
+        <span id="score" class="hudValue">0</span>
+      </div>
+      <div class="hudItem">
+        <span class="hudLabel">COMBO</span>
+        <span id="combo" class="hudValue">0</span>
+      </div>
     </div>
 
     <div id="controls">
@@ -58,4 +66,5 @@
 
   <script type="module" src="main.js"></script>
 </body>
+
 </html>

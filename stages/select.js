@@ -4,19 +4,18 @@ export function renderStageSelect(stageList, container) {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "stage-card";
-    card.style.background =
-      stage.background?.type === "color" ? stage.background.value : "#16213e";
 
-    const charEl = document.createElement("div");
-    charEl.className = "stage-card-char";
-    charEl.textContent =
-      stage.character?.type === "emoji" ? stage.character.value : "🎵";
+    const bg = stage.background;
+    if (bg?.type === "image") {
+      card.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.45)), url("${bg.value}")`;
+    } else {
+      card.style.background = bg?.value ?? "#16213e";
+    }
 
     const titleEl = document.createElement("div");
     titleEl.className = "stage-card-title";
     titleEl.textContent = stage.title;
 
-    card.appendChild(charEl);
     card.appendChild(titleEl);
     card.addEventListener("click", () => {
       location.href = `?stage=${encodeURIComponent(stage.id)}`;
