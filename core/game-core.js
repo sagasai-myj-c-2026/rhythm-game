@@ -55,6 +55,7 @@ export function initGame(stageConfig, domRefs) {
   let noteEls = new Map();
   let hitLineX = 0;
   let spawnX = 0;
+  let recordedTimes = [];
 
   // "idle" -> "loading" -> "playing" <-> "paused" -> "ended"
   let state = "idle";
@@ -201,6 +202,13 @@ export function initGame(stageConfig, domRefs) {
   function handleAction(type) {
     if (state !== "playing") return;
     const now = audioCtx.currentTime;
+    if (RECORD_MODE) {
+      const t = +(Math.max(0, now - startTime).toFixed(3));
+      recordedTimes.push(t);
+      showJudgment(`● ${recordedTimes.length}`, "perfect");
+      playPressSound(type, "perfect");
+      return;
+    }
     const { index, diff } = findNearestBeat(now, type);
     if (index === null) {
       playPressSound(type, "miss");
@@ -286,8 +294,16 @@ export function initGame(stageConfig, domRefs) {
     setCharacterFrame("normal");
     clearAllNotes();
     setControlsForState();
-    overlayTitleEl.textContent = "終了！";
-    overlayScoreEl.textContent = `Score: ${score}`;
+    if (RECORD_MODE && recordedTimes.length) {
+      const line = `noteTimes: ${JSON.stringify(recordedTimes)},`;
+      navigator.clipboard.writeText(line).catch(() => {});
+      overlayTitleEl.textContent = `${recordedTimes.length}音録音完了`;
+      overlayScoreEl.textContent = "クリップボードにコピーしました！stage3.jsに貼り付けてください。";
+      console.log(line);
+    } else {
+      overlayTitleEl.textContent = "終了！";
+      overlayScoreEl.textContent = `Score: ${score}`;
+    }
     overlayEl.hidden = false;
   }
 
@@ -376,6 +392,7 @@ export function initGame(stageConfig, domRefs) {
 
       score = 0;
       combo = 0;
+      recordedTimes = [];
       hitBeats = new Set();
       hitFrameUntil = 0;
       setCharacterFrame("normal");
