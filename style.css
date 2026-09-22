@@ -302,6 +302,39 @@ h1 {
   transform: scale(0.96);
 }
 
+#devControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: #a0a0c0;
+}
+
+#devControls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#timeline {
+  width: 240px;
+  height: 6px;
+  accent-color: #e94560;
+  cursor: pointer;
+}
+
+#playbackSpeed {
+  background: #0f3460;
+  color: #f5f5f5;
+  border: 1px solid #e94560;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 #volumeControl {
   display: flex;
   align-items: center;
