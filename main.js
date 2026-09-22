@@ -20,6 +20,8 @@ const ids = [
   "overlayScore",
   "overlayRetryBtn",
   "volume",
+  "timeline",
+  "playbackSpeed",
 ];
 
 const requestedId = new URLSearchParams(location.search).get("stage");

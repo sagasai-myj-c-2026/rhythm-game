@@ -38,6 +38,8 @@ export function initGame(stageConfig, domRefs) {
     overlayScore: overlayScoreEl,
     overlayRetryBtn,
     volume: volumeEl,
+    timeline: timelineEl,
+    playbackSpeed: playbackSpeedEl,
   } = domRefs;
 
   let audioCtx = null;
@@ -58,6 +60,8 @@ export function initGame(stageConfig, domRefs) {
   let hitLineX = 0;
   let spawnX = 0;
   let recordedTimes = [];
+  let playbackRate = 1.0;
+  let isSeeking = false;
 
   // "idle" -> "loading" -> "playing" <-> "paused" -> "ended"
   let state = "idle";
@@ -255,11 +259,38 @@ export function initGame(stageConfig, domRefs) {
     });
   }
 
+  function seek(songPos) {
+    if (!audioBuffer || state === "idle") return;
+    isSeeking = true;
+    if (source) {
+      source.onended = null;
+      try { source.stop(); } catch (_) {}
+      source = null;
+    }
+    const now = audioCtx.currentTime;
+    startTime = now - songPos / playbackRate;
+    beatTimes = beatOffsets.map((t) => startTime + t / playbackRate);
+    hitBeats = new Set(beatOffsets.map((t, i) => (t < songPos - GOOD_WINDOW ? i : -1)).filter((i) => i >= 0));
+    clearAllNotes();
+    spawnPointer = Math.max(0, beatOffsets.findIndex((t) => t >= songPos - NOTE_LEAD_SEC));
+    source = audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.playbackRate.value = playbackRate;
+    source.connect(gainNode);
+    source.onended = () => { if (state === "playing" && !isSeeking) endGame(); };
+    source.start(now, Math.max(0, songPos));
+    if (state === "paused") audioCtx.suspend();
+    isSeeking = false;
+  }
+
   function tick() {
     const now = audioCtx.currentTime;
     checkMissedBeats(now);
     updateNotes(now);
-
+    if (timelineEl && audioBuffer) {
+      const songPos = Math.max(0, (now - startTime) * playbackRate);
+      timelineEl.value = (songPos / audioBuffer.duration) * 100;
+    }
     updateCharacterFrame(now);
 
     if (state === "playing") {
@@ -410,16 +441,19 @@ export function initGame(stageConfig, domRefs) {
 
       measureLane();
 
+      playbackRate = parseFloat(playbackSpeedEl.value) || 1.0;
       startTime = audioCtx.currentTime + LEAD_IN_SEC;
       const notes = assignNoteTypes(beatOffsets, stageConfig);
-      beatTimes = notes.map((n) => startTime + n.time);
+      beatTimes = notes.map((n) => startTime + n.time / playbackRate);
       noteTypes = notes.map((n) => n.type);
+      if (timelineEl) { timelineEl.value = 0; }
 
       source = audioCtx.createBufferSource();
       source.buffer = buffer;
+      source.playbackRate.value = playbackRate;
       source.connect(gainNode);
       source.onended = () => {
-        if (state === "playing") endGame();
+        if (state === "playing" && !isSeeking) endGame();
       };
       source.start(startTime);
 
@@ -453,6 +487,24 @@ export function initGame(stageConfig, domRefs) {
     if (state === "playing") pauseGame();
     else if (state === "paused") resumeGame();
   });
+
+  if (timelineEl) {
+    timelineEl.addEventListener("input", () => {
+      if (!audioBuffer || (state !== "playing" && state !== "paused")) return;
+      const songPos = (timelineEl.value / 100) * audioBuffer.duration;
+      seek(songPos);
+    });
+  }
+
+  if (playbackSpeedEl) {
+    playbackSpeedEl.addEventListener("change", () => {
+      const songPos = audioBuffer && (state === "playing" || state === "paused")
+        ? Math.max(0, (audioCtx.currentTime - startTime) * playbackRate)
+        : 0;
+      playbackRate = parseFloat(playbackSpeedEl.value) || 1.0;
+      if (audioBuffer && (state === "playing" || state === "paused")) seek(songPos);
+    });
+  }
 
   inputBus.addEventListener("action", (e) => handleAction(e.detail.type));
 }
