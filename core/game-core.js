@@ -205,7 +205,7 @@ export function initGame(stageConfig, domRefs) {
     if (RECORD_MODE) {
       const t = +(Math.max(0, now - startTime).toFixed(3));
       recordedTimes.push(t);
-      showJudgment(`● ${recordedTimes.length}`, "perfect");
+      scoreEl.textContent = `● ${recordedTimes.length}`;
       playPressSound(type, "perfect");
       return;
     }
@@ -388,6 +388,7 @@ export function initGame(stageConfig, domRefs) {
         if (DEBUG_NOTES) {
           console.table(beatOffsets.map((t, i) => ({ i, t: t.toFixed(3) })));
         }
+        if (RECORD_MODE) beatOffsets = [];
       }
 
       score = 0;
