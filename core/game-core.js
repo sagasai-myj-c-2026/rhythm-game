@@ -366,7 +366,9 @@ export function initGame(stageConfig, domRefs) {
 
     try {
       const buffer = await loadAudio();
-      if (!RECORD_MODE && !beatOffsets.length) {
+      if (stageConfig.noteTimes) {
+        beatOffsets = stageConfig.noteTimes;
+      } else if (!RECORD_MODE && !beatOffsets.length) {
         beatOffsets = detectBeats(buffer, { minBeatGapSec, energyThreshold });
         if (gridSubdivision > 0) {
           beatOffsets = snapBeatsToGrid(buffer, beatOffsets, {
