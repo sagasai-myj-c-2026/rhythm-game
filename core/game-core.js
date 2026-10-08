@@ -1,6 +1,10 @@
 import { detectBeats, snapBeatsToGrid } from "./beat-detector.js";
 import { inputBus } from "./input/input-bus.js";
 import { assignNoteTypes } from "./note-types.js";
+import {
+  saveScore,
+  renderScoreboard,
+} from "./scoreboard.js";
 
 const LEAD_IN_SEC = 0.5;
 const IDLE_FRAME_SEC = 0.3;
@@ -40,7 +44,10 @@ export function initGame(stageConfig, domRefs) {
     volume: volumeEl,
     timeline: timelineEl,
     playbackSpeed: playbackSpeedEl,
+    
   } = domRefs;
+
+  const scoreboardListEl = document.querySelector("#scoreboard-list");
 
   let audioCtx = null;
   let gainNode = null;
@@ -327,6 +334,12 @@ export function initGame(stageConfig, domRefs) {
     setCharacterFrame("normal");
     clearAllNotes();
     setControlsForState();
+
+    if (!RECORD_MODE) {
+      saveScore(stageConfig.id, score);
+      renderScoreboard(stageConfig.id, scoreboardListEl);
+    }
+
     if (RECORD_MODE && recordedTimes.length) {
       const line = `noteTimes: ${JSON.stringify(recordedTimes)},`;
       navigator.clipboard.writeText(line).catch(() => {});
@@ -473,6 +486,9 @@ export function initGame(stageConfig, domRefs) {
   }
 
   applyStageLook();
+
+  renderScoreboard(stageConfig.id, scoreboardListEl);
+
   window.addEventListener("resize", measureLane);
 
   startBtn.addEventListener("click", playGame);
