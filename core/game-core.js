@@ -328,7 +328,7 @@ export function initGame(stageConfig, domRefs) {
     }
   }
 
-  function endGame() {
+  async function endGame() {
     state = "ended";
     cancelAnimationFrame(rafId);
     setCharacterFrame("normal");
@@ -336,8 +336,12 @@ export function initGame(stageConfig, domRefs) {
     setControlsForState();
 
     if (!RECORD_MODE) {
-      saveScore(stageConfig.id, score);
-      renderScoreboard(stageConfig.id, scoreboardListEl);
+      try {
+      await saveScore(stageConfig.id, score);
+      } catch (error) {
+        console.error("Failed to save score:", error);
+      } 
+      await renderScoreboard(stageConfig.id, scoreboardListEl);
     }
 
     if (RECORD_MODE && recordedTimes.length) {
